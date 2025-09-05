@@ -1,0 +1,77 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+@tailwind utilities;
+
+
+*{
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+
+@layer base {
+  :root {
+    /* Colors */
+    --primary: #1F2937; 
+    --background: #EAF1F3;
+    --accent: #3B82F6;
+
+    /* Font Sizes */
+    --text-sm: 0.875rem; 
+    --text-base: 1rem;   
+    --text-lg: 1.125rem; 
+  }
+
+  body {
+  background-color: var(--background);
+  font-family: var(--primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+}
+
+@layer utilities {
+  /* Font Families */
+  .font-primary {
+    font-family: 'Poppins', sans-serif;
+  }
+  .font-secondary {
+    font-family: 'Roboto Mono', monospace;
+  }
+  .font-tertiary {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  /* Colors */
+  .text-primary {
+    color: var(--primary);
+  }
+  .text-background {
+    color: var(--background);
+  }
+  .bg-primary {
+    background-color: var(--primary);
+  }
+  .text-accent {
+    color: var(--accent);
+  }
+  .bg-accent {
+    background-color: var(--accent);
+  }
+  .bg-background {
+    background-color: var(--background);
+  }
+
+  /* Font Sizes */
+  .text-sm-custom {
+    font-size: var(--text-sm);
+  }
+  .text-base-custom {
+    font-size: var(--text-base);
+  }
+  .text-lg-custom {
+    font-size: var(--text-lg);
+  }
+}
