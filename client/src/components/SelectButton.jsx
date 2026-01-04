@@ -7,10 +7,10 @@ const SelectButton = ({ children, selected, onClick}) => {
         aria-pressed={selected}
         onClick={onClick}
         className={[
-            'cursor-pointer inline-flex items-center rounded-md select-none px-3 py-1 font-medium border',
+            'min-w-[3rem] transition-all duration-200 cursor-pointer flex items-center justify-center rounded-md px-4 py-2 font-medium border',
             selected
-                ? 'bg-primary text-white'
-                : ''
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
         ].join('')}
     >
       {children}

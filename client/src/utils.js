@@ -23,7 +23,6 @@ export const formatPrice = (price, currency, exchangeRate = 1, valueIsUsd = true
 };
 
 // Formatting coins on their 24hr price change
-
 export const getChangeColor = (change) => {
   if(change === null || change === undefined) {
     return 'gray';

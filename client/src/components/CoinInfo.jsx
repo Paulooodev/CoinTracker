@@ -40,13 +40,17 @@ const CoinInfo = ({ coin }) => {
         params: {
           vs_currency: currency.toLowerCase(),
           days,
-          interval: days === 1 ? 'hourly' : 'daily'
+          // interval: days === 1 ? 'hourly' : days === 7 ? 'hourly' : 'daily',
         }
-      })
-      setHistoricData(data.prices)
+      });
+      if(data?.prices?.length > 0) {
+        setHistoricData(data.prices)
+      } else {
+        setHistoricData([])
+      }
     } catch(e) {
       console.error('Error fetching historic data:', e);
-      setHistoricData([])
+      setHistoricData([]);
     }
   };
 
@@ -81,12 +85,12 @@ const CoinInfo = ({ coin }) => {
             data={{
               labels: historicData.map((coin) => {
                 let date = new Date(coin[0]);
-                if(days === 1) {
+                if(days <= 90) {
                   let hours = date.getHours();
                   const minutes = date.getMinutes().toString().padStart(2, '0');
                   const suffix = hours >= 12 ? 'PM' : 'AM';
                   hours = hours % 12 || 12;
-                  return `${hours} :${minutes}:${suffix}`
+                  return `${hours}:${minutes}:${suffix}`
                 }
 
                   return date.toLocaleDateString();
@@ -115,10 +119,8 @@ const CoinInfo = ({ coin }) => {
           />
           </div>
       )}
-
-
     
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         {ranges.map(d => (
           <SelectButton
             key={d}
@@ -132,6 +134,7 @@ const CoinInfo = ({ coin }) => {
     </div>
   )
 }
+
 
 export default CoinInfo
 

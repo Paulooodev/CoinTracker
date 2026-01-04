@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Typography, LinearProgress, Alert, Button } from '@mui/material';
+import { Container, Typography, LinearProgress, Alert, Button, Card, CardContent, Divider, Chip } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import parse from 'html-react-parser';
 import { CryptoState } from '../CryptoContext';
@@ -39,25 +39,22 @@ const Coinpage = () => {
   };
 
   useEffect(() => {
-    fetchCoin();
+    const t = setTimeout(fetchCoin, 200);
+    return () => clearTimeout(t)
   }, [id]);
 
   if (loading) {
     return (
-      <Container maxWidth="lg" className="min-h-[80vh] flex items-center justify-center px-4">
-        <LinearProgress 
-          sx={{ 
-              backgroundColor: 'var(--primary)',
-              fontFamily:'inherit'
-              }}/>
+      <Container maxWidth="lg" className="min-h-[60vh] flex items-center justify-center px-4">
+        <LinearProgress sx={{ backgroundColor: 'var(--primary)', width: '100%' }} />
       </Container>
     );
   }
 
   return (
-    <Container maxWidth="lg" className="px-4 py-6">
+    <Container maxWidth="lg" className="px-4 py-10">
       {errorMsg ? (
-        <div className="mb-4">
+        <div className="mb-6">
           <Alert
             severity="warning"
             action={
@@ -71,72 +68,76 @@ const Coinpage = () => {
         </div>
       ) : null}
 
-      <div className="flex flex-col lg:flex-row font-tertiary">
-        {/* Left block (sidebar-like) */}
-        <div className="w-full lg:w-1/3 lg:max-w-[380px] flex flex-col items-center mt-6 lg:mt-0 lg:pr-6 lg:border-r border-gray-200">
-          <img
-            src={coin?.image?.large}
-            alt={coin?.name}
-            className="w-[150px] h-[150px] object-contain mb-5"
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 font-tertiary mt-6 lg:mt-8">
+        {/* Left panel */}
+        <div className="lg:col-span-1">
+          <Card variant="outlined" className="rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex justify-center mb-6">
+                <img
+                  src={coin?.image?.large}
+                  alt={coin?.name}
+                  className="w-28 h-28 object-contain"
+                />
+              </div>
 
-          <Typography
-            variant="h3"
-            className="font-bold mb-5 tracking-tight"
-            sx={{ fontFamily: 'inherit' }}
-          >
-            {coin?.name ?? '—'}
-          </Typography>
-
-          <Typography
-            variant="subtitle1"
-            className="w-full px-6 text-justify text-gray-600 mb-6"
-            sx={{ fontFamily: 'inherit' }}
-          >
-            {coin?.description?.en
-              ? <>{parse(coin.description.en.split('. ')?.[0] || '')}.</>
-              : null}
-            
-          </Typography>
-
-          <div className="self-start w-full px-6 pt-3 space-y-6">
-            <div className="flex items-baseline gap-3">
               <Typography
-                variant="h5"
-                className="font-bold text-yellow-50"
+                variant="body1"
+                className="text-gray-600 leading-relaxed mb-6"
                 sx={{ fontFamily: 'inherit' }}
               >
-                Rank: {coin?.market_cap_rank ?? '—'}
+                {coin?.description?.en
+                  ? <>{parse(coin.description.en.split('. ')?.[0] || '')}.</>
+                  : 'No description available.'}
               </Typography>
-            </div>
 
-            <div className="flex items-baseline gap-3">
-              <Typography
-                variant="h5"
-                className="font-bold mr-3"
-                sx={{ fontFamily: 'inherit' }}
-              >
-                Current Price: {displayPrice}
-              </Typography>
-              
-             
-            </div>
+              <Divider className="my-4" />
 
-            <div className="flex items-baseline gap-3">
-              <Typography
-                variant="h5"
-                className="font-bold "
-                sx={{ fontFamily: 'inherit' }}
-              >
-                Market Cap: {displayMarketCap}
-              </Typography>
-            </div>
-          </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Typography variant="body2" className="text-gray-600" sx={{ fontFamily: 'inherit' }}>
+                    Current Price
+                  </Typography>
+                  <Typography variant="h6" className="font-bold" sx={{ fontFamily: 'inherit' }}>
+                    {displayPrice}
+                  </Typography>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Typography variant="body2" className="text-gray-600" sx={{ fontFamily: 'inherit' }}>
+                    Market Cap
+                  </Typography>
+                  <Typography variant="h6" className="font-bold" sx={{ fontFamily: 'inherit' }}>
+                    {displayMarketCap}
+                  </Typography>
+                </div>
+
+                {coin?.market_data?.price_change_percentage_24h !== undefined ? (
+                  <div className="flex items-center justify-between">
+                    <Typography variant="body2" className="text-gray-600" sx={{ fontFamily: 'inherit' }}>
+                      24h Change
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      className={coin.market_data.price_change_percentage_24h >= 0 ? 'text-green-600' : 'text-red-600'}
+                      sx={{ fontFamily: 'inherit' }}
+                    >
+                      {coin.market_data.price_change_percentage_24h.toFixed(2)}%
+                    </Typography>
+                  </div>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Right block (chart/content) */}
-        <div className="w-full lg:flex-1 lg:pl-8 mt-8 lg:mt-0">
-          <CoinInfo coin={coin} />
+        {/* Right panel */}
+        <div className="lg:col-span-2">
+          <Card variant="outlined" className="rounded-xl">
+            <CardContent className="p-4 lg:p-6">
+              <CoinInfo coin={coin} />
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Container>

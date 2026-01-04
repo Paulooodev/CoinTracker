@@ -34,7 +34,6 @@ const Carousel = () => {
   
 
   const items = trending.map(({ item }) => {
-    // const profit = priceChange24h >= 0;
     const currencySymbol = currency === 'NGN' ? '₦' : '$';
     const displayPrice = `${currencySymbol}${formatPrice(item.data.price, currency, exchangeRate)}`;
 
@@ -58,18 +57,33 @@ const Carousel = () => {
             width="50"
             className="mb-3" 
           />
-          <Typography variant="subtitle2" className="font-medium text-background">
+          <Typography 
+            variant="subtitle2" 
+            className="font-medium text-background"
+            sx={{
+              fontFamily:'inherit'
+            }}
+            >
             {item.name} (${item.symbol?.toUpperCase()})
           </Typography>
 
           <Typography
             variant='subtitle1' 
             className='font-medium text-center text-background'
+            sx={{
+              fontFamily:'inherit'
+            }}
           > 
               Global Rank: {item.market_cap_rank || 'N/A'}
           </Typography>
 
-          <Typography variant="body2" className="text-background text-center">
+          <Typography 
+            variant="body2" 
+            className="text-background text-center"
+            sx={{
+              fontFamily:'inherit'
+            }}
+            >
             Price: {displayPrice}
           </Typography>
         </div>

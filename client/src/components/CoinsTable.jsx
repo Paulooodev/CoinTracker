@@ -34,104 +34,98 @@ const CoinsTable = () => {
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [isSearching, setIsSearching] = useState(false);
     const navigate = useNavigate();
     const { currency, symbol, exchangeRate } = CryptoState();
 
-    const fetchCoinList = async (currentCurrency) => {
-        const apiPerPage = 25;
-        const targetTotal = 500;
-        const totalPages = Math.ceil(targetTotal / apiPerPage);
-        const expected = apiPerPage * totalPages;
 
-        const currencyNorm = (currentCurrency || 'usd').toLowerCase();
-        const cacheKey = `coins_${currencyNorm}`;
-        const metaKey = `${cacheKey}_meta`;
-        const TTL_MS = 60_000;
+    const perPage = 25; // API fetch size (matches CoinGecko max = 250)
 
-        const cached = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-        const meta = JSON.parse(localStorage.getItem(metaKey) || 'null');
-        if(Array.isArray(cached) && cached.length >= expected && meta && Date.now() - meta.ts < TTL_MS) {
-            setCoins(cached);
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const allCoins = [];
-            for (let i = 1; i <= totalPages; i++) {
-                let attempts = 0;
-                let success = false;
-                while(attempts < 3 && !success) {
-                    try {
-                        // console.log('fetching page:', i, 'for currency:', currentCurrency);
-                        const { data } = await api.get(`/coins`, {
-                            params: {
-                                vs_currency: currencyNorm || 'usd',
-                                order: 'market_cap_desc',
-                                per_page: apiPerPage,
-                                page: i,
-                                sparkline: false
-                            }
+    const fetchCoinList = async (currentCurrency, page) => {
+            try {
+                setLoading(true);
+                const { data } = await api.get(`/coins`, {
+                    params: {
+                        vs_currency: currentCurrency || 'usd',
+                        order: 'market_cap_desc',
+                        per_page: perPage,
+                        page,
+                        sparkline: false
+                    }
                         });
-                        allCoins.push(...data);
-                        success = true
-                        setCoins([...allCoins]);
+                        setCoins(data);
+                        setTotalPages(20)
                          await new Promise((res) => setTimeout(res, 1000));
                     } catch(err) {
-                        attempts++;
-                        if (err.response?.status === 429) {
-                            // console.warn(`Rate limit hit on page ${i}, attempt ${attempts}. Retrying...`);
-                            await new Promise((res) => setTimeout(res, 3000 * attempts));
-                        } else {
-                            throw err
-                        }
+                        console.error("🚨 Error fetching coins:", err.message);
+                    } finally {
+                        setLoading(false);
                     }
                 }
-                if(!success) {
-                    console.error(`Failed to fetch page ${i} after 3 attempts`)
+
+    const fetchSearchResults = async (query, currentCurrency) => {
+            try {
+                setLoading(true);
+                setIsSearching(true);
+                const { data } = await api.get(`/coins`, {
+                    params: {
+                        vs_currency: currentCurrency || 'usd',
+                        order: 'market_cap_desc',
+                        per_page: 250, // Get more coins for search
+                        page: 1,
+                        sparkline: false
+                    }
+                });
+                    const filteredResults = data.filter((coin) => (
+                        coin.name.toLowerCase().includes(query?.toLowerCase()) ||
+                        coin.symbol.toLowerCase().includes(query?.toLowerCase())
+                ));
+                    setCoins(filteredResults);             
+                    setTotalPages(1)
+                         await new Promise((res) => setTimeout(res, 1000));
+                    } catch(err) {
+                        console.error("🚨 Error searching coins:", err.message);
+                        setCoins([])
+                    } finally {
+                        setLoading(false);
+                    }
                 }
-            }
-            localStorage.setItem(cacheKey, JSON.stringify(allCoins));
-            localStorage.setItem(metaKey, JSON.stringify({ts: Date.now(), expected }));
 
-            // Final state Update
-            setCoins(allCoins);
-        } catch(err) {
-            console.error("🚨 Error fetching coins:", err.message);
-        } finally {
-            setLoading(false);
+
+    useEffect(() => {
+        if(searchQuery.trim()) {
+            const timeoutId = setTimeout(() => {
+                fetchSearchResults(searchQuery, currency)
+            }, 500);
+            return () => clearTimeout(timeoutId)
+        } else {
+            setIsSearching(false);
+            fetchCoinList(currency, currentPage)
         }
-    }
-
-    console.log(coins);
-
+    }, [currency, currentPage, searchQuery])
 
     useEffect(() => {
-        fetchCoinList(currency)
-    }, [currency])
-
-    useEffect(() => {
-        setCurrentPage(1)
+        if(!searchQuery.trim()){
+            setCurrentPage(1)
+        }
     }, [searchQuery])
 
 
     // Function to handle search for crypto coins
     const filteredCoins = () => {
         if(!searchQuery?.trim()) {
-            return coins;
+            return coins || [];
         }
-        return coins.filter((coin) => (
-            coin.name.toLowerCase().includes(searchQuery?.toLowerCase()) ||
-            coin.symbol.toLowerCase().includes(searchQuery?.toLowerCase())
-        ));
+        // return coins.filter((coin) => (
+        //     coin.name.toLowerCase().includes(searchQuery?.toLowerCase()) ||
+        //     coin.symbol.toLowerCase().includes(searchQuery?.toLowerCase())
+        // ));
+        return coins || [];
     };
 
-    const displayedCoins = filteredCoins();
-    const uiPerPage = 10;
-    const pageCount =  Math.ceil(displayedCoins.length / uiPerPage);
-    const startIndex = (currentPage - 1) * uiPerPage;
-    const endIndex = startIndex + uiPerPage;
-    const paginatedCoins = displayedCoins.slice(startIndex, endIndex);
+    // Paginate the filtered coins
+    const paginatedCoins = filteredCoins()
 
 
   return (
@@ -163,7 +157,7 @@ const CoinsTable = () => {
             value={searchQuery}
             onChange={(e) => {
                 setSearchQuery(e.target.value);
-                // setCurrentPage(1);
+                setCurrentPage(1);
             }}
         />
         <Box
@@ -180,13 +174,13 @@ const CoinsTable = () => {
                     backgroundColor: 'var(--primary)',
                     fontFamily:'inherit'
                     }}/>
-            ) : filteredCoins().length === 0 && !loading ? (
+            ) : (filteredCoins().length === 0 && !loading) ? (
                 <Typography
                     variant='body1' align='center'
                      sx={{
                         fontFamily:'inherit'
                     }}
-                        >
+                >
                     No coins found matching your search
                 </Typography>
             ) : (
@@ -216,7 +210,6 @@ const CoinsTable = () => {
                     <TableBody>
                         {paginatedCoins
                                      .map(row => {
-                            const profit = row.price_change_percentage_24h > 0;
                             return (
                                 <TableRow 
                                     onClick={() => navigate(`/coins/${row.id}`)}
@@ -303,28 +296,30 @@ const CoinsTable = () => {
             )
         } 
         </TableContainer>
-       <Pagination
-            count={pageCount}
-            page={currentPage}
-            onChange={(event, value) => {
-                setCurrentPage(value);
-               }
-            }
-            renderItem={(item) => (
-                <PaginationItem
-                    slots={{
-                        previous: ArrowBackIcon,
-                        next: ArrowForwardIcon
-                    }}
-                    {...item}
-                />
-            )}
+       {!isSearching && (
+            <Pagination
+                count={totalPages}
+                page={currentPage}
+                onChange={(event, value) => {
+                    setCurrentPage(value);
+                    }
+                }
+                renderItem={(item) => (
+                    <PaginationItem
+                        slots={{
+                            previous: ArrowBackIcon,
+                            next: ArrowForwardIcon
+                        }}
+                        {...item}
+                    />
+                )}
             sx={{
                 marginTop: 2,
                 display: 'flex',
                 justifyContent: 'center'
             }}
         />
+        )}
         </Box>
       </Box>
     </div>
@@ -332,3 +327,6 @@ const CoinsTable = () => {
 }
 
 export default CoinsTable
+
+
+

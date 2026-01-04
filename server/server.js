@@ -1,9 +1,21 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+import express from 'express';
+import axios from 'axios';
+import cors from 'cors';
+import dotenv from "dotenv";
+import cookieParser from 'cookie-parser';
+
+dotenv.config()
 const app = express();
 
-app.use(cors())
+app.use(cors({
+  origin: "http://localhost:5173", 
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+
+app.use(cookieParser());
+
 
 app.get('/', (req, res) => {
     res.send('Coin Tracker Backend running');
@@ -59,7 +71,30 @@ app.get('/api/coins/:id', async (req, res) => {
     }
 });
 
+// Proxy for Coingecko search endpoint
+app.get('/api/search', async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        if (!query) {
+            return res.status(400).json(({ error: 'Missing query parameter' }));
+        }
+
+        const response = await axios.get('https://api.coingecko.com/api/v3/search', {
+            params: { query },
+        });
+        
+        res.json(response.data);
+    } catch(error){
+        console.error('Errror fetching search results:', error.message)
+        res.status(500).json({ error: 'Failed to fetch search results' })
+    }
+})
+
+
 // Proxy for Coingecko Historical chart data endpoint
+const cache = new Map();
+const CACHE_DURATION = 1000 * 60 * 2;
 app.get('/api/coins/:id/market_chart', async (req, res) => {
     try {
         const { id } = req.params;
@@ -68,6 +103,17 @@ app.get('/api/coins/:id/market_chart', async (req, res) => {
             days = '30',
             interval = 'daily',
         } = req.query;
+ 
+        const cacheKey = `${id}-${vs_currency}-${days}-${interval}`
+
+        if(cache.has(cacheKey)) {
+            const { data, expiry } = cache.get(cacheKey);
+            if( Date.now() < expiry ) {
+                return res.json(data);
+            } else {
+                cache.delete(cacheKey);
+            }
+        }
 
         const response = await axios.get(
             `https://api.coingecko.com/api/v3/coins/${id}/market_chart`,
@@ -76,6 +122,12 @@ app.get('/api/coins/:id/market_chart', async (req, res) => {
                 timeout: 10000,
             }
         );
+        // Store in cache
+        cache.set(cacheKey, {
+            data: response.data,
+            expiry: Date.now() + CACHE_DURATION
+        })
+        
         res.json(response.data);
     } catch(error) {
         const status = error.response?.status || 500;
@@ -86,7 +138,7 @@ app.get('/api/coins/:id/market_chart', async (req, res) => {
 })
 
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`)
 })
